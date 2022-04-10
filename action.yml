@@ -1,0 +1,39 @@
+name: 'GitHub action to run Drupal 8+ tests'
+description: 'Execute Unit, Kernel, Functional and Functional JavaScript tests from custom modules'
+
+runs:
+  using: "composite"
+  steps:
+    - name: 'Start MySQL'
+      shell: bash
+      run: sudo systemctl start mysql
+
+    - name: 'Execute Unit tests'
+      shell: bash
+      run: ./vendor/bin/phpunit --testsuite=unit
+
+    - name: 'Execute Kernel tests'
+      shell: bash
+      run: ./vendor/bin/phpunit --testsuite=kernel
+
+    - name: 'Install instance and run drush web server'
+      shell: bash
+      run: |
+        cp .github/workflows/settings.local.php web/sites/default/
+        ./vendor/bin/drush site:install -y --existing-config
+        sudo ./vendor/bin/drush runserver 80 &
+
+    - name: 'Start chromedriver'
+      shell: bash
+      run: |
+        export DISPLAY=:99
+        sudo xvfb -ac :99 -screen 0 1280x1024x24 > /dev/null 2>&1 & # optional
+        /usr/local/share/chrome_driver/chromedriver &
+
+    - name: 'Execute Functional tests'
+      shell: bash
+      run: ./vendor/bin/phpunit --testsuite=functional
+
+    - name: 'Execute Functional JavaScript tests'
+      shell: bash
+      run: ./vendor/bin/phpunit --testsuite=functionaljs
